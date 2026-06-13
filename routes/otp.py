@@ -1,15 +1,20 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from database import otp_collection
 from datetime import datetime
 
 router = APIRouter()
 
-@router.post("/api/otp")
-async def save_otp(data: dict):
+
+@router.post("/api/sms")
+async def receive_sms(request: Request):
+
+    payload = await request.json()
 
     document = {
-        "otp": data.get("otp"),
-        "source": data.get("source", "web_otp"),
+        "payload": payload,
+        "message": payload.get("message"),
+        "sender": payload.get("from"),
+        "received_at": payload.get("receivedAt"),
         "created_at": datetime.utcnow()
     }
 
@@ -18,20 +23,3 @@ async def save_otp(data: dict):
     return {
         "status": "success"
     }
-
-
-@router.get("/api/otp")
-async def get_otps():
-
-    data = []
-
-    for doc in otp_collection.find().sort("_id", -1).limit(100):
-
-        data.append({
-            "id": str(doc["_id"]),
-            "otp": doc["otp"],
-            "source": doc["source"],
-            "created_at": doc["created_at"]
-        })
-
-    return data
