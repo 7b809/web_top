@@ -1,3 +1,7 @@
+
+let previousCount = 0;
+let previousLatestOtp = null;
+
 // =====================================================
 // DEBUG LOGGER
 // =====================================================
@@ -162,7 +166,12 @@ async function startOTP() {
 
         addLog(
             "SUCCESS",
-            "OTP Received: " + content.code
+            `OTP Received -> ${content.code}`
+        );
+
+        addLog(
+            "INFO",
+            `Received Time -> ${new Date().toLocaleString()}`
         );
 
         document.title =
@@ -213,16 +222,9 @@ async function loadTable() {
 
     try {
 
-        addLog(
-            "SYSTEM",
-            "Loading OTP table..."
-        );
+        const response = await fetch("/api/otp");
 
-        const response =
-            await fetch("/api/otp");
-
-        const data =
-            await response.json();
+        const data = await response.json();
 
         let html = "";
 
@@ -249,10 +251,66 @@ async function loadTable() {
             "otpTable"
         ).innerHTML = html;
 
-        addLog(
-            "SYSTEM",
-            `Loaded ${data.length} records`
-        );
+        // =====================================
+        // Statistics
+        // =====================================
+
+        const totalCount = data.length;
+
+        document.getElementById(
+            "totalOtpCount"
+        ).innerText = totalCount;
+
+        if (data.length > 0) {
+
+            document.getElementById(
+                "latestOtp"
+            ).innerText = data[0].otp;
+
+            document.getElementById(
+                "latestTime"
+            ).innerText =
+                new Date(
+                    data[0].created_at
+                ).toLocaleString();
+
+            // Detect new OTP
+
+            if (
+                previousLatestOtp &&
+                previousLatestOtp !== data[0].otp
+            ) {
+
+                addLog(
+                    "SUCCESS",
+                    `New OTP Received: ${data[0].otp}`
+                );
+
+                addLog(
+                    "INFO",
+                    `Received At: ${new Date(
+                        data[0].created_at
+                    ).toLocaleString()}`
+                );
+            }
+
+            previousLatestOtp = data[0].otp;
+        }
+
+        // Detect count changes
+
+        if (
+            previousCount > 0 &&
+            totalCount > previousCount
+        ) {
+
+            addLog(
+                "INFO",
+                `Total OTP Records: ${totalCount}`
+            );
+        }
+
+        previousCount = totalCount;
 
     } catch (e) {
 
